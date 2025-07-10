@@ -1,4 +1,10 @@
 node_modules/
 npm-debug.log
 
-.log
+*.log
+
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
