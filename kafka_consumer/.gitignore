@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.so
+venv/
+.Python
+build/
+dist/
+*.egg-info/
+.env
+
+# IDE (jika menggunakan PyCharm atau IDE lain)
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Logs dan Data Sementara
+*.log
+*.tmp

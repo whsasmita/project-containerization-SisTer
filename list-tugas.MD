@@ -1,0 +1,9 @@
+# LIST TUGAS UAS SISTER
+
+## WAHYU
+
+
+## SURYANI
+
+
+## DAMAR
