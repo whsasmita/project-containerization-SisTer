@@ -30,13 +30,11 @@ SUPABASE_KEY=
 ```bash
 cd api_service
 npm install
-cd ..
 ```
 ### Kafka_Consumer
 ```bash
 cd kafka_consumer
 pip install -r requirements.txt
-cd ..
 ```
 
 ## Run with Docker Compose
