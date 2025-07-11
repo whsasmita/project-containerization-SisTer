@@ -8,7 +8,7 @@ git clone https://github.com/whsasmita/project-containerization-SisTer.git
 
 ## Navigate to the project folder
 ```bash
-cd project-containerization-SisTe
+cd project-containerization-SisTer
 ```
 
 ## Create `.env` in api_service
