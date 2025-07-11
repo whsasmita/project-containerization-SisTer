@@ -16,7 +16,7 @@ cd project-containerization-SisTe
 MYSQL_HOST="localhost"
 MYSQL_USER="root"
 MYSQL_PASSWORD=""
-MYSQL_DATABASE="sisTer_db"
+MYSQL_DATABASE="sister_db"
 PORT=5000
 KAFKA_BROKER_HOST=
 KAFKA_TOPIC=
