@@ -1,0 +1,122 @@
+version: "3.7"
+name: redpanda-quickstart-one-broker
+
+networks:
+  redpanda_network:
+    driver: bridge
+
+volumes:
+  redpanda-0: null
+  mysql_data: null 
+
+services:
+  # Layanan Redpanda Broker
+  redpanda-0:
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda-0:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda-0:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda-0:33145
+      - --advertise-rpc-addr redpanda-0:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.7
+    container_name: redpanda-0
+    volumes:
+      - redpanda-0:/var/lib/redpanda/data
+    networks:
+      - redpanda_network
+    ports:
+      - 18081:18081
+      - 18082:18082
+      - 19092:19092
+      - 19644:9644
+
+  # Layanan Redpanda Console
+  console:
+    container_name: redpanda-console
+    image: docker.redpanda.com/redpandadata/console:v2.6.0
+    networks:
+      - redpanda_network
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda-0:9092"]
+          schemaRegistry:
+            enabled: true
+            urls: ["http://redpanda-0:8081"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda-0:9644"]
+    ports:
+      - 8080:8080
+    depends_on:
+      - redpanda-0
+
+  # LAYANAN BARU: MySQL Database
+  mysql:
+    image: mysql:8.0 # Menggunakan image MySQL versi 8.0
+    container_name: mysql_db
+    ports:
+      - "3306:3306" # Port untuk mengakses MySQL dari host (opsional, untuk tool klien)
+    environment:
+      MYSQL_ROOT_PASSWORD: klpk4_sister # Ganti dengan password root yang kuat!
+      MYSQL_DATABASE: sister_db # Ganti dengan nama database Anda
+      MYSQL_USER: k4 # Ganti dengan username database Anda
+      MYSQL_PASSWORD: klpk4_sister # Ganti dengan password user database Anda
+    volumes:
+      - mysql_data:/var/lib/mysql # Persistensi data MySQL
+      # - ./mysql_init:/docker-entrypoint-initdb.d # Opsional: Untuk skrip inisialisasi SQL
+    networks:
+      - redpanda_network # MySQL juga harus di jaringan yang sama
+    restart: always # Selalu restart container jika berhenti
+
+  # Layanan untuk API Express.js Anda
+  api_service:
+    build: ./api_service
+    container_name: api_service_app
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      # Perbarui DATABASE_URL untuk menunjuk ke layanan MySQL di jaringan Docker
+      # Format ini mungkin berbeda tergantung library ORM/DB client yang Anda gunakan (misal Sequelize, Knex, dll.)
+      # Contoh untuk Sequelize/Mongoose (jika pakai MongoDB)
+      # DATABASE_URL: "mysql://your_user:your_password@mysql_db:3306/your_database_name"
+      DB_HOST: mysql_db # Nama host adalah nama service di docker-compose
+      DB_USER: k4
+      DB_PASSWORD: klpk4_sister
+      DB_NAME: sister_db
+      DB_PORT: 3306
+      KAFKA_BROKERS: "redpanda-0:9092"
+      NODE_ENV: production
+    networks:
+      - redpanda_network
+    depends_on:
+      - redpanda-0 # Tetap tergantung pada Redpanda
+      - mysql # Tambahkan dependensi pada layanan MySQL
+    # healthcheck: # Opsional: Menunggu MySQL siap sebelum API dimulai (lebih robust)
+    #   test: ["CMD", "mysqladmin", "ping", "-h", "mysql_db", "-u", "your_user", "-p${DB_PASSWORD}"]
+    #   interval: 5s
+    #   timeout: 5s
+    #   retries: 5
+
+  # Layanan untuk konsumen Kafka berbasis Python Anda
+  kafka_consumer:
+    build: ./kafka_consumer
+    container_name: kafka_consumer_app
+    environment:
+      KAFKA_BROKERS: "redpanda-0:9092"
+    networks:
+      - redpanda_network
+    depends_on:
+      - redpanda-0
