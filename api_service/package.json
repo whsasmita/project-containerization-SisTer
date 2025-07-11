@@ -2,8 +2,10 @@
   "name": "api_service",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/resource/main.js", 
   "scripts": {
+    "start": "node src/resource/main.js",
+    "dev": "nodemon src/resource/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
