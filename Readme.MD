@@ -20,9 +20,9 @@ cd project-containerization-SisTe
 ```bash
 KAFKA_NETWORK=
 TOPIC_NAME=
-SUPABASE_ID=
-SUPABASE_URL=
-SUPABASE_KEY=
+SUPABASE_ID=gocmlalussfvexvukpaq
+SUPABASE_URL=https://gocmlalussfvexvukpaq.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvY21sYWx1c3NmdmV4dnVrcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNTU1MDEsImV4cCI6MjA2NzczMTUwMX0.6wqux9NhdoZddE_z8c_6zT2FP8fBa4ppDt-6flC_-CM
 ```
 
 ## Install local depedencies
