@@ -64,21 +64,20 @@ services:
 
   # LAYANAN BARU: MySQL Database
   mysql:
-    image: mysql:8.0 # Menggunakan image MySQL versi 8.0
+    image: mysql:8.0 
     container_name: mysql_db
     ports:
-      - "3306:3306" # Port untuk mengakses MySQL dari host (opsional, untuk tool klien)
+      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: klpk4_sister # Ganti dengan password root yang kuat!
-      MYSQL_DATABASE: sister_db # Ganti dengan nama database Anda
-      MYSQL_USER: k4 # Ganti dengan username database Anda
-      MYSQL_PASSWORD: klpk4_sister # Ganti dengan password user database Anda
+      MYSQL_ROOT_PASSWORD: klpk4_sister
+      MYSQL_DATABASE: sister_db
+      MYSQL_USER: k4
+      MYSQL_PASSWORD: klpk4_sister
     volumes:
-      - mysql_data:/var/lib/mysql # Persistensi data MySQL
-      # - ./mysql_init:/docker-entrypoint-initdb.d # Opsional: Untuk skrip inisialisasi SQL
+      - mysql_data:/var/lib/mysql
     networks:
-      - redpanda_network # MySQL juga harus di jaringan yang sama
-    restart: always # Selalu restart container jika berhenti
+      - redpanda_network
+    restart: always
 
   # Layanan untuk API Express.js Anda
   api_service:
@@ -88,11 +87,7 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      # Perbarui DATABASE_URL untuk menunjuk ke layanan MySQL di jaringan Docker
-      # Format ini mungkin berbeda tergantung library ORM/DB client yang Anda gunakan (misal Sequelize, Knex, dll.)
-      # Contoh untuk Sequelize/Mongoose (jika pakai MongoDB)
-      # DATABASE_URL: "mysql://your_user:your_password@mysql_db:3306/your_database_name"
-      DB_HOST: mysql_db # Nama host adalah nama service di docker-compose
+      DB_HOST: mysql_db
       DB_USER: k4
       DB_PASSWORD: klpk4_sister
       DB_NAME: sister_db
@@ -102,13 +97,8 @@ services:
     networks:
       - redpanda_network
     depends_on:
-      - redpanda-0 # Tetap tergantung pada Redpanda
-      - mysql # Tambahkan dependensi pada layanan MySQL
-    # healthcheck: # Opsional: Menunggu MySQL siap sebelum API dimulai (lebih robust)
-    #   test: ["CMD", "mysqladmin", "ping", "-h", "mysql_db", "-u", "your_user", "-p${DB_PASSWORD}"]
-    #   interval: 5s
-    #   timeout: 5s
-    #   retries: 5
+      - redpanda-0
+      - mysql
 
   # Layanan untuk konsumen Kafka berbasis Python Anda
   kafka_consumer:
