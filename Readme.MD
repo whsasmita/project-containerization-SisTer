@@ -63,6 +63,11 @@ cd kafka_consumer
 pip install -r requirements.txt
 ```
 
+## Create RedPanda Topic
+```bash
+docker exec -it redpanda-0 rpk topic create uas_sister
+```
+
 ## Run with Docker Compose
 make sure Docker Desktop is open
 ```bash
@@ -91,3 +96,8 @@ docker exec -it mysql_db mysql -u k4 -pklpk4_sister sister_db
 1. download the postman collection [here](collection/UAS_SisTer.postman_collection.json)
 2. export to the postman
 3. start testing
+
+## Consume Message
+```bash
+docker exec -it redpanda-0 rpk topic consume uas_sister
+```
