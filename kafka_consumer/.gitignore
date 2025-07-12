@@ -11,5 +11,6 @@ dist/
 .env
 
 # Logs dan Data Sementara
+failed_logs.txt
 *.log
 *.tmp
