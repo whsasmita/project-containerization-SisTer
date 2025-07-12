@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/resource/app.js",
+  "type": "module",
   "scripts": {
     "start": "node src/resource/app.js",
     "dev": "nodemon src/resource/app.js",
@@ -12,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",

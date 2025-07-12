@@ -103,6 +103,9 @@ services:
       DB_NAME: sister_db
       DB_PORT: 3306
       KAFKA_BROKERS: "redpanda-0:9092"
+      KAFKA_TOPIC: "uas_sister"
+      KAFKA_CLIENT_ID: "api_service_klpk4"
+      SENDER_NAME: "api_service_klpk4"
       NODE_ENV: production
     networks:
       - redpanda_network

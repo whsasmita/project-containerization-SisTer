@@ -1,22 +1,9 @@
 import mysql from "mysql2";
-import dotenv from "dotenv";
-dotenv.config();
+import { Kafka } from 'kafkajs';
+import net from 'net'; 
 
-// Debug: Log semua environment variables
-console.log('=== DATABASE CONNECTION DEBUG ===');
-console.log('MYSQL_HOST:', process.env.MYSQL_HOST);
-console.log('MYSQL_USER:', process.env.MYSQL_USER);
-console.log('MYSQL_PASSWORD:', process.env.MYSQL_PASSWORD ? '***' : 'NOT SET');
-console.log('MYSQL_DATABASE:', process.env.MYSQL_DATABASE);
-console.log('MYSQL_PORT:', process.env.MYSQL_PORT);
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***' : 'NOT SET');
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('DB_PORT:', process.env.DB_PORT);
-console.log('================================');
-
-// Use environment variables from docker-compose
+// --- Konfigurasi MySQL ---
+// Langsung gunakan process.env, karena dotenv.config() akan dipanggil di app.js
 const dbConfig = {
     host: process.env.DB_HOST || process.env.MYSQL_HOST || 'mysql_db',
     database: process.env.DB_NAME || process.env.MYSQL_DATABASE || 'sister_db',
@@ -28,53 +15,53 @@ const dbConfig = {
     queueLimit: 0,
     acquireTimeout: 60000,
     timeout: 60000,
-    reconnect: true,
     multipleStatements: false
 };
 
-console.log('Final DB Config:', {
-    ...dbConfig,
-    password: '***'
-});
-
+// Buat pool koneksi MySQL
 export const pool = mysql
     .createPool(dbConfig)
     .promise();
 
-// Test koneksi dengan more detailed error handling
+// --- Konfigurasi Kafka/Redpanda ---
+export const kafka = new Kafka({
+    clientId: process.env.KAFKA_CLIENT_ID || 'api_service_klpk4',
+    brokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(',') : ['localhost:9092'],
+    retry: {
+        initialRetryTime: 100,
+        retries: 8
+    }
+});
+
+// Buat dan ekspor Kafka Producer
+export const producer = kafka.producer();
+
+// --- Fungsi untuk Test Koneksi Database (MySQL) ---
 export async function testConnection() {
     try {
         console.log('Testing database connection...');
-        const [rows] = await pool.execute('SELECT 1 as test');
-        console.log('MySQL connection successful:', rows);
+        const connection = await pool.getConnection(); // Coba ambil koneksi dari pool
+        connection.release(); // Segera lepaskan koneksi
+        console.log('MySQL connection successful!');
         return true;
     } catch (error) {
-        console.error('MySQL connection failed with details:');
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        
-        // Try to get more info about the connection attempt
+        console.error('MySQL connection test failed with details:', error.message);
         if (error.code === 'ECONNREFUSED') {
-            console.error('Connection refused - possible causes:');
-            console.error('1. MySQL server is not running');
-            console.error('2. Wrong host/port configuration');
-            console.error('3. Network connectivity issues');
-            console.error('4. Firewall blocking connection');
+            console.error('Possible causes: MySQL server not running, wrong host/port, or network issues.');
+        } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+            console.error('Access denied - check MySQL username and password.');
         }
-        
         return false;
     }
 }
 
-// Test basic network connectivity
+// --- Fungsi untuk Test Konektivitas Jaringan (Basic) ---
 export async function testNetworkConnectivity() {
-    const net = await import('net');
-    
     return new Promise((resolve) => {
         const socket = new net.Socket();
-        const host = process.env.DB_HOST || 'mysql_db';
-        const port = parseInt(process.env.DB_PORT || '3306');
+        // Pastikan host dan port terbaca dari process.env setelah dotenv.config() dijalankan di app.js
+        const host = process.env.DB_HOST || process.env.MYSQL_HOST || 'mysql_db';
+        const port = parseInt(process.env.DB_PORT || process.env.MYSQL_PORT || '3306');
         
         console.log(`Testing network connectivity to ${host}:${port}...`);
         
@@ -88,11 +75,12 @@ export async function testNetworkConnectivity() {
         
         socket.on('error', (error) => {
             console.error(`Network connection to ${host}:${port} failed:`, error.message);
+            socket.destroy();
             resolve(false);
         });
         
         socket.on('timeout', () => {
-            console.error(`Network connection to ${host}:${port} timed out`);
+            console.error(`Network connection to ${host}:${port} timed out.`);
             socket.destroy();
             resolve(false);
         });
