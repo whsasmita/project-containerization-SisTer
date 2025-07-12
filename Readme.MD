@@ -40,7 +40,7 @@ SENDER_NAME=api_service_klpk4
 ## Create `.env` in kafka_consumer
 ```bash
 # Environment Variables for Kafka Consumer
-KAFKA_BROKERS=redpanda-0:9092
+KAFKA_BROKERS=localhost:19092
 KAFKA_TOPIC=uas_sister
 KAFKA_CLIENT_ID=api_service_klpk4
 KAFKAJS_NO_PARTITIONER_WARNING=1
