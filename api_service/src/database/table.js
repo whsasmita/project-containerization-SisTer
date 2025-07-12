@@ -5,10 +5,10 @@ async function createPurchasesTable() {
         const query = `
         CREATE TABLE IF NOT EXISTS purchases (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            price DECIMAL(10, 2) NOT NULL,
+            price INT NOT NULL,
             qty INT NOT NULL,
-            total DECIMAL(10, 2) NOT NULL,
-            user_id VARCHAR(36) NOT NULL, -- UUID V4 adalah 36 karakter
+            total INT NOT NULL,
+            user_id VARCHAR(36) NOT NULL,
             purchase_date DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         `;
