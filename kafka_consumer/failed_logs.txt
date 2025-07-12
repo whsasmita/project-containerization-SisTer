@@ -1,4 +1,0 @@
-2025-07-12T15:55:29.057359 - Failed to log: {'id': 26, 'price': 32212, 'qty': 4, 'total': 128848, 'user_id': '8f543602-197e-4a45-b445-f16908125466', 'purchase_date': '2025-07-12T07:55:13.541Z'}
-2025-07-12T16:03:48.036670 - Failed to log: {'id': 27, 'price': 32212, 'qty': 4, 'total': 128848, 'user_id': '1375bd7c-5031-4656-9eb6-b04f385524ae', 'purchase_date': '2025-07-12T08:03:47.224Z'}
-2025-07-12T16:04:49.920108 - Failed to log: {'id': 29, 'price': 32212, 'qty': 4, 'total': 128848, 'user_id': 'e2564c5f-3a43-4191-8195-1d9612de404b', 'purchase_date': '2025-07-12T08:04:49.465Z'}
-2025-07-12T16:06:41.729849 - Failed to log: {'id': 30, 'price': 32212, 'qty': 4, 'total': 128848, 'user_id': '87c81b94-d861-411d-8f3e-eca6b65bdb49', 'purchase_date': '2025-07-12T08:06:40.911Z'}
