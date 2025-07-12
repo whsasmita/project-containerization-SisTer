@@ -86,3 +86,8 @@ docker-compose logs -f mysql
 ```bash
 docker exec -it mysql_db mysql -u k4 -pklpk4_sister sister_db
 ```
+
+## Insert Data Using Postman
+1. download the postman collection [here](collection/UAS_SisTer.postman_collection.json)
+2. export to the postman
+3. start testing
