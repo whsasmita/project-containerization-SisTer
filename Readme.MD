@@ -63,15 +63,15 @@ cd kafka_consumer
 pip install -r requirements.txt
 ```
 
-## Create RedPanda Topic
-```bash
-docker exec -it redpanda-0 rpk topic create uas_sister
-```
-
 ## Run with Docker Compose
 make sure Docker Desktop is open
 ```bash
 docker-compose up --build
+```
+
+## Create RedPanda Topic
+```bash
+docker exec -it redpanda-0 rpk topic create uas_sister
 ```
 
 ## Open New Terminal
