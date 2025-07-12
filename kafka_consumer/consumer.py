@@ -2,17 +2,11 @@ import os
 import json
 import msgpack
 from confluent_kafka import Consumer
-from supabase import create_client, Client
 import dotenv
 from datetime import datetime
 
 # Load environment variables
 dotenv.load_dotenv()
-
-# Supabase configuration
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Kafka configuration
 KAFKA_BROKERS = os.environ.get("KAFKA_BROKERS")
@@ -43,152 +37,94 @@ def convert_timestamps_to_string(obj):
     else:
         return obj
 
-async def test_supabase_tables():
-    """Test which tables exist and their structure"""
+def decode_from_msgpack_base64(encoded_data):
+    """Decode msgpack data from base64 string (for debugging)"""
     try:
-        # Test table uas
-        print("Testing table: uas")
-        result = supabase.table("uas").select("*").limit(1).execute()
-        print(f"uas exists: {result.data}")
-        
-        # Test table uas
-        print("Testing table: uas")
-        result = supabase.table("uas").select("*").limit(1).execute()
-        print(f"uas exists: {result.data}")
-
-        # Test table uas
-        print("Testing table: uas")
-        result = supabase.table("uas").select("*").limit(1).execute()
-        print(f"uas exists: {result.data}")
-        
+        import base64
+        # Decode base64 string to bytes
+        msgpack_bytes = base64.b64decode(encoded_data)
+        return msgpack.unpackb(msgpack_bytes, raw=False)
     except Exception as e:
-        print(f"Table test error: {e}")
+        print(f"Error decoding from msgpack: {e}")
+        return None
 
-def simple_insert_test():
-    """Test with very simple data"""
-    try:
-        test_data = {
-            "topic": "test",
-            "message": "simple test message",
-            "sender": "test_sender",
-            "created_at": datetime.now().isoformat(),
-            "status": True
-        }
-        
-        print(f"Testing simple insert: {test_data}")
-        result = supabase.table("uas").insert([test_data]).execute()
-        print(f"Simple insert successful: {result.data}")
-        return True
-        
-    except Exception as e:
-        print(f"Simple insert failed: {e}")
-        
-        # Try with different table name
-        try:
-            result = supabase.table("uas").insert([test_data]).execute()
-            print(f"Simple insert to 'uas' successful: {result.data}")
-            return True
-        except Exception as e2:
-            print(f"Simple insert to 'uas' also failed: {e2}")
-            return False
-
-print(f"Starting Kafka consumer for topic: {KAFKA_TOPIC}")
-print(f"Connected to brokers: {KAFKA_BROKERS}")
-print(f"Logging to Supabase: {SUPABASE_URL}")
-
-# Test Supabase connection first
-print("\n=== TESTING SUPABASE CONNECTION ===")
-if simple_insert_test():
-    print("✓ Supabase connection works")
-else:
-    print("✗ Supabase connection failed")
-    exit(1)
-
-print("\n=== STARTING KAFKA CONSUMER ===")
+print("=" * 60)
+print("KAFKA CONSUMER - CONSUME ONLY MODE")
+print("=" * 60)
+print(f"📡 Kafka Topic: {KAFKA_TOPIC}")
+print(f"🔗 Kafka Brokers: {KAFKA_BROKERS}")
+print(f"🆔 Client ID: {KAFKA_CLIENT_ID}")
+print(f"👂 Consumer Group: {KAFKA_CLIENT_ID}-consumer-group")
+print("=" * 60)
+print("🚀 Starting to consume messages...")
+print("   (Press Ctrl+C to stop)")
+print("=" * 60)
 
 try:
+    message_count = 0
     while True:
         msg = consumer.poll(1.0)
         
         if msg is None:
             continue
         elif msg.error():
-            print(f"Kafka Error: {msg.error()}")
+            print(f"❌ Kafka Error: {msg.error()}")
         else:
             try:
-                # Decode message
+                message_count += 1
+                print(f"\n📨 MESSAGE #{message_count} RECEIVED")
+                print(f"   ⏰ Timestamp: {datetime.now().isoformat()}")
+                print(f"   🏷️  Topic: {msg.topic()}")
+                print(f"   #️⃣  Partition: {msg.partition()}")
+                print(f"   📍 Offset: {msg.offset()}")
+                
+                # Decode message dari msgpack
                 message_data = msgpack.unpackb(msg.value(), raw=False)
-                print(f"Received message: {message_data}")
+                print(f"   📄 Raw Message: {message_data}")
 
                 event_type = message_data.get('event')
                 purchase_data = message_data.get('data')
                 
                 if event_type == 'purchase' and purchase_data:
-                    # Clean data
+                    # Clean data untuk display
                     cleaned_data = convert_timestamps_to_string(purchase_data)
-                    print(f"Cleaned data: {cleaned_data}")
                     
-                    # Create very simple log entry
-                    log_entry = {
-                        "topic": str(KAFKA_TOPIC),
-                        "message": json.dumps(cleaned_data),  # Simple JSON string
-                        "sender": str(KAFKA_CLIENT_ID),
-                        "created_at": datetime.now().isoformat(),
-                        "status": True
-                    }
+                    print(f"   🎯 Event Type: {event_type}")
+                    print(f"   💰 Purchase Data:")
+                    print(f"      • ID: {cleaned_data.get('id')}")
+                    print(f"      • Price: ${cleaned_data.get('price')}")
+                    print(f"      • Quantity: {cleaned_data.get('qty')}")
+                    print(f"      • Total: ${cleaned_data.get('total')}")
+                    print(f"      • User ID: {cleaned_data.get('user_id')}")
+                    print(f"      • Purchase Date: {cleaned_data.get('purchase_date')}")
                     
-                    print(f"Attempting to insert: {log_entry}")
+                    # Log ke file lokal (optional)
+                    with open('consumed_messages.log', 'a') as f:
+                        f.write(f"{datetime.now().isoformat()} - CONSUMED: {json.dumps(cleaned_data)}\n")
                     
-                    # Try insert to uas table first
-                    try:
-                        result = supabase.table("uas").insert([log_entry]).execute()
-                        print(f"✓ Successfully logged to uas: {result.data}")
-                    except Exception as e1:
-                        print(f"✗ Failed to insert to uas: {e1}")
-                        
-                        # Try insert to uas table
-                        try:
-                            result = supabase.table("uas").insert([log_entry]).execute()
-                            print(f"✓ Successfully logged to uas: {result.data}")
-                        except Exception as e2:
-                            print(f"✗ Failed to insert to uas: {e2}")
-                            
-                            # Try with even simpler data
-                            simple_log = {
-                                "topic": "test",
-                                "message": f"Purchase ID: {cleaned_data.get('id')}",
-                                "sender": "consumer",
-                                "created_at": datetime.now().isoformat(),
-                                "status": True
-                            }
-                            
-                            try:
-                                result = supabase.table("uas").insert([simple_log]).execute()
-                                print(f"✓ Simple log successful: {result.data}")
-                            except Exception as e3:
-                                print(f"✗ Even simple log failed: {e3}")
-                                
-                                # Log to file
-                                with open('failed_logs.txt', 'a') as f:
-                                    f.write(f"{datetime.now().isoformat()} - FAILED: {cleaned_data}\n")
-                                print("Logged to file as last resort")
-                    
-                    print(f"Purchase processed - ID: {cleaned_data.get('id')}")
+                    print(f"   ✅ Purchase ID {cleaned_data.get('id')} processed successfully")
                     
                 else:
-                    print(f"Unknown event type: {event_type}")
+                    print(f"   ⚠️  Unknown event type: {event_type}")
+                    print(f"   📊 Full message: {message_data}")
+                    
+                print("-" * 60)
                     
             except Exception as process_error:
-                print(f"Message processing error: {process_error}")
+                print(f"❌ Message processing error: {process_error}")
+                print(f"   Raw message value: {msg.value()}")
                 import traceback
                 traceback.print_exc()
+                print("-" * 60)
 
 except KeyboardInterrupt:
-    print("\nConsumer stopped by user")
+    print(f"\n🛑 Consumer stopped by user")
+    print(f"📊 Total messages consumed: {message_count}")
 except Exception as e:
-    print(f"Consumer error: {e}")
+    print(f"❌ Consumer error: {e}")
     import traceback
     traceback.print_exc()
 finally:
     consumer.close()
-    print("Consumer connection closed")
+    print("🔌 Consumer connection closed")
+    print("👋 Goodbye!")

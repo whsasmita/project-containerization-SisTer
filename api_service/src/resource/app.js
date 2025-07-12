@@ -335,6 +335,7 @@ app.get("/health", async (req, res) => {
 
 // --- Endpoint POST API Sederhana ---
 // Fixed purchase endpoint dengan proper date handling
+// Fixed purchase endpoint dengan single msgpack insert
 app.post("/api/purchase", async (req, res) => {
   let transactionStatus = false;
   const kafkaTopic = process.env.KAFKA_TOPIC || "uas_sister";
@@ -343,27 +344,32 @@ app.post("/api/purchase", async (req, res) => {
   try {
     const { price, qty } = req.body;
 
+    // Validasi input
     if (
       typeof price !== "number" ||
       typeof qty !== "number" ||
       price <= 0 ||
       qty <= 0
     ) {
+      // HANYA LOG ERROR ke Supabase dengan msgpack (tidak ada insert lain)
       const invalidInputData = {
+        event: "validation_error",
         original_request: req.body,
         error: "Invalid input: price and qty must be positive numbers.",
-        timestamp: new Date().toISOString(), // Gunakan toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const invalidInputLog = {
         topic: kafkaTopic,
-        message: encodeToMsgpack(invalidInputData),
+        message: encodeToMsgpack(invalidInputData), // Gunakan msgpack
         sender: senderName,
-        created_at: new Date().toISOString(), // Gunakan toISOString()
+        created_at: new Date().toISOString(),
         status: false,
       };
 
+      // Single insert untuk error
       await supabase.from("uas").insert([invalidInputLog]);
+      
       return res.status(400).json({
         error: "Invalid input: price and qty must be positive numbers.",
       });
@@ -378,7 +384,7 @@ app.post("/api/purchase", async (req, res) => {
       qty,
       total,
       user_id: userId,
-      purchase_date: purchaseDate, // Akan dikonversi di MySQL
+      purchase_date: purchaseDate,
     };
 
     // --- 1. Simpan data ke MySQL ---
@@ -396,7 +402,6 @@ app.post("/api/purchase", async (req, res) => {
     transactionStatus = true;
 
     // --- 2. Publish data ke Redpanda (Kafka) ---
-    // PENTING: Konversi Date ke string untuk Kafka
     const kafkaMessageData = {
       event: "purchase",
       data: {
@@ -405,7 +410,7 @@ app.post("/api/purchase", async (req, res) => {
         qty: purchaseData.qty,
         total: purchaseData.total,
         user_id: purchaseData.user_id,
-        purchase_date: purchaseData.purchase_date.toISOString(), // Konversi ke string ISO
+        purchase_date: purchaseData.purchase_date.toISOString(),
       },
     };
 
@@ -414,29 +419,30 @@ app.post("/api/purchase", async (req, res) => {
       console.warn("Failed to publish to Kafka, but continuing...");
     }
 
-    // --- 3. Log aktivitas ke Supabase dengan msgpack ---
+    // --- 3. SINGLE LOG ke Supabase dengan msgpack SAJA ---
     const logDataForMsgpack = {
-      event: "purchase",
+      event: "purchase_success",
       mysql_result: {
         insertId: mysqlResult.insertId,
         affectedRows: mysqlResult.affectedRows,
       },
       purchase_data: {
         ...purchaseData,
-        purchase_date: purchaseData.purchase_date.toISOString(), // Konversi ke string
+        purchase_date: purchaseData.purchase_date.toISOString(),
       },
       kafka_published: kafkaPublished,
-      timestamp: new Date().toISOString(), // Gunakan toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     const logData = {
       topic: kafkaTopic,
-      message: encodeToMsgpack(logDataForMsgpack),
+      message: encodeToMsgpack(logDataForMsgpack), // HANYA msgpack
       sender: senderName,
-      created_at: new Date().toISOString(), // Gunakan toISOString()
+      created_at: new Date().toISOString(),
       status: transactionStatus,
     };
 
+    // SINGLE INSERT ke Supabase
     const { data: logResult, error: logError } = await supabase
       .from("uas")
       .insert([logData]);
@@ -444,7 +450,7 @@ app.post("/api/purchase", async (req, res) => {
     if (logError) {
       console.error("Error inserting log to Supabase:", logError);
     } else {
-      console.log("Log inserted to Supabase with msgpack format:", logResult);
+      console.log("Single log inserted to Supabase with msgpack format:", logResult);
     }
 
     // Respon API
@@ -455,28 +461,32 @@ app.post("/api/purchase", async (req, res) => {
       user_id: purchaseData.user_id,
       id: mysqlResult.insertId,
     });
+
   } catch (error) {
     console.error("Error processing purchase:", error);
     res
       .status(500)
       .json({ error: "Internal Server Error", details: error.message });
 
+    // SINGLE ERROR LOG ke Supabase dengan msgpack
     try {
       const errorData = {
+        event: "purchase_error",
         original_request: req.body,
         error: error.message,
         stack: error.stack,
-        timestamp: new Date().toISOString(), // Gunakan toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const errorLogData = {
         topic: kafkaTopic,
-        message: encodeToMsgpack(errorData),
+        message: encodeToMsgpack(errorData), // HANYA msgpack
         sender: senderName,
-        created_at: new Date().toISOString(), // Gunakan toISOString()
+        created_at: new Date().toISOString(),
         status: false,
       };
 
+      // SINGLE INSERT untuk error
       const { error: logError } = await supabase
         .from("uas")
         .insert([errorLogData]);
