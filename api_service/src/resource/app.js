@@ -2,6 +2,10 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import msgpack from 'msgpack5'; // Tambahkan import msgpack
+
+// Inisialisasi msgpack
+const mp = msgpack();
 
 // Dapatkan current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +107,28 @@ if (!supabaseUrl || !supabaseAnonKey) {
     var supabase = createClient(finalUrl, finalKey);
 } else {
     var supabase = createClient(supabaseUrl, supabaseAnonKey);
+}
+
+// Helper function untuk encode data ke msgpack
+function encodeToMsgpack(data) {
+    try {
+        const encoded = mp.encode(data);
+        return encoded.toString('base64'); // Convert to base64 untuk storage
+    } catch (error) {
+        console.error('Error encoding to msgpack:', error);
+        throw error;
+    }
+}
+
+// Helper function untuk decode data dari msgpack
+function decodeFromMsgpack(encodedData) {
+    try {
+        const buffer = Buffer.from(encodedData, 'base64');
+        return mp.decode(buffer);
+    } catch (error) {
+        console.error('Error decoding from msgpack:', error);
+        throw error;
+    }
 }
 
 // Tambahkan fungsi helper untuk Kafka
@@ -249,7 +275,8 @@ app.get('/health', async (req, res) => {
             res.status(200).json({ 
                 status: 'healthy', 
                 database: 'connected',
-                supabase: 'connected'
+                supabase: 'connected',
+                msgpack: 'enabled'
             });
         } else {
             res.status(503).json({ 
@@ -273,13 +300,22 @@ app.post('/api/purchase', async (req, res) => {
         const { price, qty } = req.body;
 
         if (typeof price !== 'number' || typeof qty !== 'number' || price <= 0 || qty <= 0) {
+            // Encode error log data ke msgpack
+            const invalidInputData = {
+                original_request: req.body,
+                error: 'Invalid input: price and qty must be positive numbers.',
+                timestamp: new Date().toISOString()
+            };
+            
             const invalidInputLog = {
                 topic: kafkaTopic,
-                message: JSON.stringify({ original_request: req.body, error: 'Invalid input: price and qty must be positive numbers.' }),
+                message: encodeToMsgpack(invalidInputData), // Encode sebagai msgpack
                 sender: senderName,
                 created_at: new Date(),
-                status: false
+                status: false,
+                format: 'msgpack' // Tambahkan field untuk menandai format
             };
+            
             await supabase.from('uas').insert([invalidInputLog]);
             return res.status(400).json({ error: 'Invalid input: price and qty must be positive numbers.' });
         }
@@ -304,26 +340,39 @@ app.post('/api/purchase', async (req, res) => {
         transactionStatus = true;
 
         // --- 2. Publish data ke Redpanda (Kafka) ---
-        const kafkaMessage = JSON.stringify({
+        const kafkaMessageData = {
             event: 'purchase',
             data: {
                 id: mysqlResult.insertId,
                 ...purchaseData
             }
-        });
-
+        };
+        
+        const kafkaMessage = JSON.stringify(kafkaMessageData); // Kafka tetap menggunakan JSON
         const kafkaPublished = await publishToKafka(kafkaTopic, kafkaMessage);
         if (!kafkaPublished) {
             console.warn('Failed to publish to Kafka, but continuing...');
         }
 
-        // --- 3. Log aktivitas ke Supabase (tabel 'uas') ---
+        // --- 3. Log aktivitas ke Supabase dengan msgpack ---
+        const logDataForMsgpack = {
+            event: 'purchase',
+            mysql_result: {
+                insertId: mysqlResult.insertId,
+                affectedRows: mysqlResult.affectedRows
+            },
+            purchase_data: purchaseData,
+            kafka_published: kafkaPublished,
+            timestamp: new Date().toISOString()
+        };
+
         const logData = {
             topic: kafkaTopic,
-            message: kafkaMessage,
+            message: encodeToMsgpack(logDataForMsgpack), // Encode sebagai msgpack
             sender: senderName,
             created_at: new Date(),
-            status: transactionStatus
+            status: transactionStatus,
+            format: 'msgpack' // Tambahkan field untuk menandai format
         };
 
         const { data: logResult, error: logError } = await supabase
@@ -333,7 +382,7 @@ app.post('/api/purchase', async (req, res) => {
         if (logError) {
             console.error('Error inserting log to Supabase:', logError);
         } else {
-            console.log('Log inserted to Supabase:', logResult);
+            console.log('Log inserted to Supabase with msgpack format:', logResult);
         }
 
         // Respon API sesuai contoh
@@ -350,13 +399,23 @@ app.post('/api/purchase', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error', details: error.message });
         
         try {
+            // Encode error log data ke msgpack
+            const errorData = {
+                original_request: req.body,
+                error: error.message,
+                stack: error.stack,
+                timestamp: new Date().toISOString()
+            };
+            
             const errorLogData = {
                 topic: kafkaTopic,
-                message: JSON.stringify({ original_request: req.body, error: error.message, stack: error.stack }),
+                message: encodeToMsgpack(errorData), // Encode sebagai msgpack
                 sender: senderName,
                 created_at: new Date(),
-                status: false
+                status: false,
+                format: 'msgpack' // Tambahkan field untuk menandai format
             };
+            
             const { error: logError } = await supabase.from('uas').insert([errorLogData]);
             if (logError) {
                 console.error('Error inserting error log to Supabase:', logError);
@@ -378,6 +437,46 @@ app.get('/api/purchases', async (req, res) => {
     }
 });
 
+// Endpoint untuk mendapatkan logs dari Supabase dan decode msgpack
+app.get('/api/logs', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('uas')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching logs from Supabase:', error);
+            return res.status(500).json({ error: 'Failed to fetch logs', details: error.message });
+        }
+
+        // Decode msgpack data jika format adalah msgpack
+        const decodedLogs = data.map(log => {
+            if (log.format === 'msgpack') {
+                try {
+                    return {
+                        ...log,
+                        decoded_message: decodeFromMsgpack(log.message)
+                    };
+                } catch (decodeError) {
+                    console.error('Error decoding msgpack for log:', log.id, decodeError);
+                    return {
+                        ...log,
+                        decoded_message: null,
+                        decode_error: decodeError.message
+                    };
+                }
+            }
+            return log;
+        });
+
+        res.status(200).json(decodedLogs);
+    } catch (error) {
+        console.error('Error fetching logs:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+});
+
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
@@ -386,7 +485,7 @@ app.use((err, req, res, next) => {
 // Start server dengan database connection check
 async function startServer() {
     try {
-        console.log('Starting API Service...');
+        console.log('Starting API Service with msgpack support...');
         
         // Test Supabase connection
         const supabaseOk = await testSupabaseConnection();
@@ -412,10 +511,11 @@ async function startServer() {
         await createPurchasesTable();
         
         app.listen(PORT, () => {
-            console.log(`API Service running on port ${PORT}`);
+            console.log(`API Service with msgpack support running on port ${PORT}`);
             console.log(`Health check: http://localhost:${PORT}/health`);
             console.log(`Purchase endpoint: http://localhost:${PORT}/api/purchase (POST)`);
             console.log(`Get purchases: http://localhost:${PORT}/api/purchases (GET)`);
+            console.log(`Get logs (decoded): http://localhost:${PORT}/api/logs (GET)`);
             console.log(`Redpanda Console: http://localhost:8080`);
             console.log(`MySQL Workbench: Connect to localhost:3306`);
         });
