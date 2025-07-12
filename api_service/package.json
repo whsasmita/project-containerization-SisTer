@@ -2,10 +2,10 @@
   "name": "api_service",
   "version": "1.0.0",
   "description": "",
-  "main": "src/resource/main.js", 
+  "main": "src/resource/app.js",
   "scripts": {
-    "start": "node src/resource/main.js",
-    "dev": "nodemon src/resource/main.js",
+    "start": "node src/resource/app.js",
+    "dev": "nodemon src/resource/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,7 +17,8 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "kafkajs": "^2.2.4",
-    "mysql2": "^3.14.2"
+    "mysql2": "^3.14.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

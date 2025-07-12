@@ -73,20 +73,30 @@ services:
       MYSQL_DATABASE: sister_db
       MYSQL_USER: k4
       MYSQL_PASSWORD: klpk4_sister
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      MYSQL_RANDOM_ROOT_PASSWORD: 'no'
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - redpanda_network
     restart: always
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "k4", "-pklpk4_sister"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   # Layanan untuk API Express.js Anda
   api_service:
     build: ./api_service
     container_name: api_service_app
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
-      PORT: 3000
+      PORT: 5000
       DB_HOST: mysql_db
       DB_USER: k4
       DB_PASSWORD: klpk4_sister
@@ -97,8 +107,11 @@ services:
     networks:
       - redpanda_network
     depends_on:
-      - redpanda-0
-      - mysql
+      mysql:
+        condition: service_healthy
+      redpanda-0:
+        condition: service_started
+    restart: on-failure
 
   # Layanan untuk konsumen Kafka berbasis Python Anda
   kafka_consumer:
