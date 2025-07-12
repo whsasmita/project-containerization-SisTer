@@ -64,6 +64,7 @@ pip install -r requirements.txt
 ```
 
 ## Run with Docker Compose
+make sure Docker Desktop is open
 ```bash
 docker-compose up --build
 ```
