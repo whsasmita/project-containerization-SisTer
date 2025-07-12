@@ -13,19 +13,22 @@ cd project-containerization-SisTer
 
 ## Create `.env` in api_service
 ```bash
-MYSQL_HOST="localhost"
-MYSQL_USER="root"
-MYSQL_PASSWORD=""
-MYSQL_DATABASE="sister_db"
+MYSQL_HOST=mysql_db
+MYSQL_USER=k4
+MYSQL_PASSWORD=klpk4_sister
+MYSQL_DATABASE=sister_db
+MYSQL_PORT=3306
+
 PORT=5000
-KAFKA_BROKER_HOST=
-KAFKA_TOPIC=
+
+KAFKA_BROKER_HOST=redpanda-0:9092
+KAFKA_TOPIC=uas_sister
 ```
 
 ## Create `.env` in kafka_consumer
 ```bash
 KAFKA_NETWORK=
-TOPIC_NAME=
+TOPIC_NAME=uas_sister
 SUPABASE_ID=gocmlalussfvexvukpaq
 SUPABASE_URL=https://gocmlalussfvexvukpaq.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvY21sYWx1c3NmdmV4dnVrcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNTU1MDEsImV4cCI6MjA2NzczMTUwMX0.6wqux9NhdoZddE_z8c_6zT2FP8fBa4ppDt-6flC_-CM
