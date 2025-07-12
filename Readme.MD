@@ -47,3 +47,21 @@ pip install -r requirements.txt
 ```bash
 docker-compose up --build
 ```
+
+## Open New Terminal
+### Check Log Api_Service
+```bash
+docker-compose logs -f api_service
+```
+
+## Open New Terminal
+### Check Log MySql
+```bash
+docker-compose logs -f mysql
+```
+
+## Open New Terminal
+### Enter Into Mysql CLI
+```bash
+docker exec -it mysql_db mysql -u k4 -pklpk4_sister sister_db
+```
