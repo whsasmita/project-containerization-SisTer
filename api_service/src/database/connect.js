@@ -2,14 +2,12 @@ import mysql from "mysql2";
 import { Kafka } from 'kafkajs';
 import net from 'net'; 
 
-// --- Konfigurasi MySQL ---
-// Langsung gunakan process.env, karena dotenv.config() akan dipanggil di app.js
 const dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQL_HOST || 'mysql_db',
-    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || 'sister_db',
-    user: process.env.DB_USER || process.env.MYSQL_USER || 'k4',
-    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || 'klpk4_sister',
-    port: parseInt(process.env.DB_PORT || process.env.MYSQL_PORT || '3306'),
+    host: process.env.DB_HOST || 'mysql_db',
+    database: process.env.DB_NAME || 'sister_db',
+    user: process.env.DB_USER || 'k4',
+    password: process.env.DB_PASSWORD || 'klpk4_sister',
+    port: parseInt(process.env.DB_PORT || '3306'),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -18,12 +16,10 @@ const dbConfig = {
     multipleStatements: false
 };
 
-// Buat pool koneksi MySQL
 export const pool = mysql
     .createPool(dbConfig)
     .promise();
 
-// --- Konfigurasi Kafka/Redpanda ---
 export const kafka = new Kafka({
     clientId: process.env.KAFKA_CLIENT_ID || 'api_service_klpk4',
     brokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(',') : ['localhost:9092'],
@@ -33,15 +29,13 @@ export const kafka = new Kafka({
     }
 });
 
-// Buat dan ekspor Kafka Producer
 export const producer = kafka.producer();
 
-// --- Fungsi untuk Test Koneksi Database (MySQL) ---
 export async function testConnection() {
     try {
         console.log('Testing database connection...');
-        const connection = await pool.getConnection(); // Coba ambil koneksi dari pool
-        connection.release(); // Segera lepaskan koneksi
+        const connection = await pool.getConnection(); 
+        connection.release();
         console.log('MySQL connection successful!');
         return true;
     } catch (error) {
@@ -55,11 +49,9 @@ export async function testConnection() {
     }
 }
 
-// --- Fungsi untuk Test Konektivitas Jaringan (Basic) ---
 export async function testNetworkConnectivity() {
     return new Promise((resolve) => {
         const socket = new net.Socket();
-        // Pastikan host dan port terbaca dari process.env setelah dotenv.config() dijalankan di app.js
         const host = process.env.DB_HOST || process.env.MYSQL_HOST || 'mysql_db';
         const port = parseInt(process.env.DB_PORT || process.env.MYSQL_PORT || '3306');
         
