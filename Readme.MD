@@ -13,22 +13,39 @@ cd project-containerization-SisTer
 
 ## Create `.env` in api_service
 ```bash
-MYSQL_HOST=mysql_db
-MYSQL_USER=k4
-MYSQL_PASSWORD=klpk4_sister
-MYSQL_DATABASE=sister_db
-MYSQL_PORT=3306
+# Database Configuration (sesuaikan dengan yang digunakan di code)
+DB_HOST=mysql_db
+DB_USER=k4
+DB_PASSWORD=klpk4_sister
+DB_NAME=sister_db
+DB_PORT=3306
 
+# Port aplikasi
 PORT=5000
 
-KAFKA_BROKER_HOST=redpanda-0:9092
+# Kafka Configuration
+KAFKA_BROKERS=redpanda-0:9092
 KAFKA_TOPIC=uas_sister
+KAFKA_CLIENT_ID=api_service_klpk4
+KAFKAJS_NO_PARTITIONER_WARNING=1
+
+# Supabase Configuration
+SUPABASE_URL=https://gocmlalussfvexvukpaq.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvY21sYWx1c3NmdmV4dnVrcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNTU1MDEsImV4cCI6MjA2NzczMTUwMX0.6wqux9NhdoZddE_z8c_6zT2FP8fBa4ppDt-6flC_-CM
+
+# Sender name
+SENDER_NAME=api_service_klpk4
 ```
 
 ## Create `.env` in kafka_consumer
 ```bash
-KAFKA_NETWORK=
-TOPIC_NAME=uas_sister
+# Environment Variables for Kafka Consumer
+KAFKA_BROKERS=redpanda-0:9092
+KAFKA_TOPIC=uas_sister
+KAFKA_CLIENT_ID=api_service_klpk4
+KAFKAJS_NO_PARTITIONER_WARNING=1
+
+# Supabase Configuration
 SUPABASE_ID=gocmlalussfvexvukpaq
 SUPABASE_URL=https://gocmlalussfvexvukpaq.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvY21sYWx1c3NmdmV4dnVrcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNTU1MDEsImV4cCI6MjA2NzczMTUwMX0.6wqux9NhdoZddE_z8c_6zT2FP8fBa4ppDt-6flC_-CM
